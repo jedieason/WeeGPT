@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WeeGPT</title>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        /* 基本樣式 */
+        /* 您的CSS樣式保持不變 */
         :root {
             --color-background: #f5f7fa;
             --color-surface: #ffffff;
@@ -122,8 +122,8 @@
             outline: none;
             transition: var(--transition-smooth);
             font-family: 'Quicksand', sans-serif;
-            font-size: 16px;
-            line-height: 1.5;
+            font-size: 16px; /* 確保與對話框的字體大小一致 */
+            line-height: 1.5; /* 與對話框相同的行高 */
         }
 
         #send-btn {
@@ -139,8 +139,8 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 16px;
-            line-height: 1.5;
+            font-size: 16px; /* 確保與對話框的字體大小一致 */
+            line-height: 1.5; /* 與對話框相同的行高 */
         }
 
         #user-input:focus {
@@ -211,69 +211,151 @@
         </div>
     </div>
 
-    <!-- 原生 JavaScript 處理 API 請求 -->
-    <script>
-        const API_KEY = "AIzaSyDJ4UcQQzGv7x7fVocx5lOPcSCCsb4dQmQ"; // 請替換為您的新 API 金鑰
-        const API_URL = "https://generative-ai.googleapis.com/v1/models/gemini-1.5-flash:generate"; // 替換為正確的 API 端點
-
-        const chatMessages = document.getElementById('chat-messages');
-        const userInput = document.getElementById('user-input');
-        const sendBtn = document.getElementById('send-btn');
-
-        // 添加訊息到聊天區域
-        function addMessage(content, type) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', type === 'user' ? 'user-message' : 'ai-message');
-            messageDiv.textContent = content;
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+    <!-- 引入 Gemini API 的 Importmap 與 模組化腳本 -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
         }
+      }
+    </script>
+    <script type="module">
+      import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 
-        // 發送訊息函數
-        async function sendChatMessage() {
-            const message = userInput.value.trim();
-            if (message) {
-                addMessage(message, 'user');
-                userInput.value = '';
+      // 請替換為您的 Gemini API 金鑰
+      const API_KEY = "AIzaSyDJ4UcQQzGv7x7fVocx5lOPcSCCsb4dQmQ"; // 替換為您的新 API 金鑰
 
-                try {
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${API_KEY}`
-                        },
-                        body: JSON.stringify({
-                            prompt: message,
-                            max_output_tokens: 150,
-                            temperature: 0.7,
-                            top_p: 0.9,
-                            top_k: 40,
-                            stop_sequences: ["\n"]
-                        })
-                    });
+      // 初始化 Gemini API
+      const genAI = new GoogleGenerativeAI(API_KEY);
+      const model = genAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash",
+          safetySettings: [
+              {
+                  category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                  threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+              },
+              {
+                  category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                  threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+              },
+          ],
+          generationConfig: {
+              maxOutputTokens: 200,
+              temperature: 0.7,
+              topP: 0.9,
+              topK: 40,
+              stopSequences: ["\n"],
+          }
+      });
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
+      const chatMessages = document.getElementById('chat-messages');
+      const userInput = document.getElementById('user-input');
+      const sendBtn = document.getElementById('send-btn');
 
-                    const data = await response.json();
+      // 添加訊息到聊天區域
+      function addMessage(content, type) {
+          const messageDiv = document.createElement('div');
+          messageDiv.classList.add('message', type === 'user' ? 'user-message' : 'ai-message');
+          messageDiv.textContent = content;
+          chatMessages.appendChild(messageDiv);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
 
-                    // 假設 API 回應包含一個名為 'choices' 的陣列，並且每個 choice 有 'text' 屬性
-                    const text = data.choices && data.choices.length > 0 ? data.choices[0].text : "抱歉，沒有收到回應。";
-                    addMessage(text, 'ai');
-                } catch (error) {
-                    console.error('Error fetching AI response:', error);
-                    addMessage("抱歉，出現了一些問題。請稍後再試。", 'ai');
-                }
-            }
-        }
+      // 發送訊息函數
+      async function sendMessage() {
+          const message = userInput.value.trim();
+          if (message || files.length > 0) {
+              addMessage(message, 'user');
+              userInput.value = '';
 
-        // 事件監聽
-        sendBtn.addEventListener('click', sendChatMessage);
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendChatMessage();
-        });
+              try {
+                  let prompt = message;
+
+                  let input = [prompt];
+                  const result = await model.generateContent(input);
+                  
+                  const response = await result.response;
+                  const text = await response.text();
+                  addMessage(text, 'ai');
+              } catch (error) {
+                  console.error('Error fetching AI response:', error);
+                  addMessage("抱歉，出現了一些問題。請稍後再試。", 'ai');
+              }
+          }
+      }
+
+      // 事件監聽
+      sendBtn.addEventListener('click', sendMessage);
+      userInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendMessage();
+      });
+
+      // 多輪對話初始化
+      const chatHistory = [
+            { role: "system", content: "你是WeeGPT。你是由 Weee Wee ，會以精簡的方式回答使用者的問題，你只能以正體中文或英文進行回答（依使用者的輸入語言而定）。" }
+        ];
+      async function sendChatMessage() {
+          const message = userInput.value.trim();
+          if (message) {
+              addMessage(message, 'user');
+              userInput.value = '';
+              chatHistory.push({ role: "user", parts: [{ text: message }] });
+
+              try {
+                  const chat = model.startChat({
+                      history: chatHistory,
+                      generationConfig: {
+                          maxOutputTokens: 150,
+                      },
+                  });
+
+                  const result = await chat.sendMessage(message);
+                  const response = await result.response;
+                  const text = await response.text();
+                  addMessage(text, 'ai');
+                  chatHistory.push({ role: "model", parts: [{ text }] });
+              } catch (error) {
+                  console.error('Error fetching AI response:', error);
+                  addMessage("抱歉，出現了一些問題。請稍後再試。", 'ai');
+              }
+          }
+      }
+
+      // 替換 sendMessage 為 sendChatMessage 以支持多輪對話
+      sendBtn.removeEventListener('click', sendMessage);
+      sendBtn.addEventListener('click', sendChatMessage);
+      userInput.removeEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendMessage();
+      });
+      userInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendChatMessage();
+      });
+
+      // 處理串流回應
+      async function sendStreamMessage() {
+          const message = userInput.value.trim();
+          if (message || files.length > 0) {
+              addMessage(message, 'user');
+              userInput.value = '';
+
+              try {
+                  let prompt = message;
+
+                  let input = [prompt];
+                  const result = await model.generateContentStream(input);
+                  
+                  let text = '';
+                  for await (const chunk of result.stream) {
+                      const chunkText = chunk.text();
+                      text += chunkText;
+                      addMessage(chunkText, 'ai');
+                  }
+              } catch (error) {
+                  console.error('Error fetching AI response:', error);
+                  addMessage("抱歉，出現了一些問題。請稍後再試。", 'ai');
+              }
+          }
+      }
     </script>
 </body>
 </html>
