@@ -200,12 +200,6 @@
         </div>
         <div id="chat-messages"></div>
         <div id="input-area">
-            <input 
-                type="file" 
-                id="image-input" 
-                accept="image/*"
-                style="display: none;"
-            >
             <button id="image-btn" title="Upload Image">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -269,13 +263,6 @@
       const chatMessages = document.getElementById('chat-messages');
       const userInput = document.getElementById('user-input');
       const sendBtn = document.getElementById('send-btn');
-      const imageInput = document.getElementById('image-input');
-      const imageBtn = document.getElementById('image-btn');
-
-      // 點擊圖片按鈕觸發檔案選擇
-      imageBtn.addEventListener('click', () => {
-          imageInput.click();
-      });
 
       // 添加訊息到聊天區域
       function addMessage(content, type) {
@@ -284,18 +271,6 @@
           messageDiv.textContent = content;
           chatMessages.appendChild(messageDiv);
           chatMessages.scrollTop = chatMessages.scrollHeight;
-      }
-
-      // 將 File 轉換為 Gemini API 可接受的格式
-      async function fileToGenerativePart(file) {
-          const base64EncodedDataPromise = new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result.split(',')[1]);
-              reader.readAsDataURL(file);
-          });
-          return {
-              inlineData: { data: await base64EncodedDataPromise, mimeType: file.type },
-          };
       }
 
       // 發送訊息函數
@@ -334,7 +309,9 @@
       });
 
       // 多輪對話初始化
-      const chatHistory = [];
+      const chatHistory = [
+            { role: "system", content: "你是WeeGPT。你是由 Weee Wee ，會以精簡的方式回答使用者的問題，你只能以正體中文或英文進行回答（依使用者的輸入語言而定）。" }
+        ];
       async function sendChatMessage() {
           const message = userInput.value.trim();
           if (message) {
@@ -403,21 +380,6 @@
               }
           }
       }
-
-      // 如果需要使用串流功能，請取消下面的註解並替換事件監聽
-      /*
-      sendBtn.removeEventListener('click', sendChatMessage);
-      sendBtn.addEventListener('click', sendStreamMessage);
-      userInput.removeEventListener('keypress', (e) => {
-          if (e.key === 'Enter') sendChatMessage();
-      });
-      userInput.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') sendStreamMessage();
-      });
-      */
-
-      // 處理多模態對話
-      // 您可以擴展 sendChatMessage 或 sendStreamMessage 函式以處理圖片和文字輸入
     </script>
 </body>
 </html>
