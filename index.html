@@ -126,6 +126,11 @@
             line-height: 1.5; /* 與對話框相同的行高 */
         }
         
+        #image-input {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
         #send-btn {
             background: var(--color-primary);
             color: var(--color-text-light);
@@ -196,6 +201,19 @@
         <div id="chat-messages"></div>
         <div id="input-area">
             <input 
+                type="file" 
+                id="image-input" 
+                accept="image/*"
+                style="display: none;"
+            >
+            <button id="image-btn" title="Upload Image">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+            </button>
+            <input 
                 type="text" 
                 id="user-input" 
                 placeholder="Ask WeeGPT..."
@@ -220,18 +238,44 @@
       }
     </script>
     <script type="module">
-      import { GoogleGenerativeAI } from "@google/generative-ai";
+      import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 
       // 請替換為您的 Gemini API 金鑰
       const API_KEY = "YOUR_NEW_SECURE_GEMINI_API_KEY"; // 替換為您的新 API 金鑰
 
       // 初始化 Gemini API
       const genAI = new GoogleGenerativeAI(API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash",
+          safetySettings: [
+              {
+                  category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                  threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+              },
+              {
+                  category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                  threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+              },
+          ],
+          generationConfig: {
+              maxOutputTokens: 200,
+              temperature: 0.7,
+              topP: 0.9,
+              topK: 40,
+              stopSequences: ["\n"],
+          }
+      });
 
       const chatMessages = document.getElementById('chat-messages');
       const userInput = document.getElementById('user-input');
       const sendBtn = document.getElementById('send-btn');
+      const imageInput = document.getElementById('image-input');
+      const imageBtn = document.getElementById('image-btn');
+
+      // 點擊圖片按鈕觸發檔案選擇
+      imageBtn.addEventListener('click', () => {
+          imageInput.click();
+      });
 
       // 添加訊息到聊天區域
       function addMessage(content, type) {
@@ -242,16 +286,37 @@
           chatMessages.scrollTop = chatMessages.scrollHeight;
       }
 
+      // 將 File 轉換為 Gemini API 可接受的格式
+      async function fileToGenerativePart(file) {
+          const base64EncodedDataPromise = new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result.split(',')[1]);
+              reader.readAsDataURL(file);
+          });
+          return {
+              inlineData: { data: await base64EncodedDataPromise, mimeType: file.type },
+          };
+      }
+
       // 發送訊息函數
       async function sendMessage() {
           const message = userInput.value.trim();
-          if (message) {
+          const files = imageInput.files;
+          if (message || files.length > 0) {
               addMessage(message, 'user');
               userInput.value = '';
-              
+              imageInput.value = '';
+
               try {
-                  // 呼叫 Gemini API 生成回覆
-                  const result = await model.generateContent(message);
+                  let prompt = message;
+                  let imageParts = [];
+                  if (files.length > 0) {
+                      imageParts = await Promise.all([...files].map(fileToGenerativePart));
+                  }
+
+                  let input = [prompt, ...imageParts];
+                  const result = await model.generateContent(input);
+                  
                   const response = await result.response;
                   const text = await response.text();
                   addMessage(text, 'ai');
@@ -267,6 +332,92 @@
       userInput.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') sendMessage();
       });
+
+      // 多輪對話初始化
+      const chatHistory = [];
+      async function sendChatMessage() {
+          const message = userInput.value.trim();
+          if (message) {
+              addMessage(message, 'user');
+              userInput.value = '';
+              chatHistory.push({ role: "user", parts: [{ text: message }] });
+
+              try {
+                  const chat = model.startChat({
+                      history: chatHistory,
+                      generationConfig: {
+                          maxOutputTokens: 150,
+                      },
+                  });
+
+                  const result = await chat.sendMessage(message);
+                  const response = await result.response;
+                  const text = await response.text();
+                  addMessage(text, 'ai');
+                  chatHistory.push({ role: "model", parts: [{ text }] });
+              } catch (error) {
+                  console.error('Error fetching AI response:', error);
+                  addMessage("抱歉，出現了一些問題。請稍後再試。", 'ai');
+              }
+          }
+      }
+
+      // 替換 sendMessage 為 sendChatMessage 以支持多輪對話
+      sendBtn.removeEventListener('click', sendMessage);
+      sendBtn.addEventListener('click', sendChatMessage);
+      userInput.removeEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendMessage();
+      });
+      userInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendChatMessage();
+      });
+
+      // 處理串流回應
+      async function sendStreamMessage() {
+          const message = userInput.value.trim();
+          const files = imageInput.files;
+          if (message || files.length > 0) {
+              addMessage(message, 'user');
+              userInput.value = '';
+              imageInput.value = '';
+
+              try {
+                  let prompt = message;
+                  let imageParts = [];
+                  if (files.length > 0) {
+                      imageParts = await Promise.all([...files].map(fileToGenerativePart));
+                  }
+
+                  let input = [prompt, ...imageParts];
+                  const result = await model.generateContentStream(input);
+                  
+                  let text = '';
+                  for await (const chunk of result.stream) {
+                      const chunkText = chunk.text();
+                      text += chunkText;
+                      addMessage(chunkText, 'ai');
+                  }
+              } catch (error) {
+                  console.error('Error fetching AI response:', error);
+                  addMessage("抱歉，出現了一些問題。請稍後再試。", 'ai');
+              }
+          }
+      }
+
+      // 如果需要使用串流功能，請取消下面的註解並替換事件監聽
+      /*
+      sendBtn.removeEventListener('click', sendChatMessage);
+      sendBtn.addEventListener('click', sendStreamMessage);
+      userInput.removeEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendChatMessage();
+      });
+      userInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendStreamMessage();
+      });
+      */
+
+      // 處理多模態對話
+      // 您可以擴展 sendChatMessage 或 sendStreamMessage 函式以處理圖片和文字輸入
     </script>
 </body>
 </html>
