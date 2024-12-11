@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -198,11 +198,11 @@
             <input 
                 type="text" 
                 id="user-input" 
-                placeholder="請問WeeGPT..."
+                placeholder="Ask WeeGPT..."
                 maxlength="200"
             >
             <button id="send-btn">
-                發送
+                Send
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"></line>
                     <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -211,308 +211,75 @@
         </div>
     </div>
 
-    <!-- 引入必要的庫 -->
-    <!-- Fuse.js for Fuzzy Search -->
-    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
-    <!-- TensorFlow.js for Universal Sentence Encoder -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder@1.3.2/dist/universal-sentence-encoder.min.js"></script>
-    <!-- 引入簡單的拼寫校正庫（此處使用一個簡單的例子，實際應用中需使用適合中文的拼寫校正庫或API） -->
-    <script src="https://cdn.jsdelivr.net/npm/simple-spellchecker@0.4.2/index.js"></script>
-
-    <script>
-        const chatMessages = document.getElementById('chat-messages');
-        const userInput = document.getElementById('user-input');
-        const sendBtn = document.getElementById('send-btn');
-
-        // 主題內容儲存在這裡
-        const mainContent = `
-### RNA Synthesis, Processing, and the RNA World Hypothesis
-
-This text explores the intricacies of RNA synthesis and processing, contrasting prokaryotic and eukaryotic mechanisms, and examining the fascinating concept of the RNA world hypothesis.
-
-### rRNA Synthesis and Processing
-
-Ribosomal RNA (rRNA) synthesis is a complex process involving multiple RNA polymerases and several processing steps.  In eukaryotes, the majority of rRNA is synthesized by RNA polymerase I (RNA Pol I) in the nucleolus. This polymerase transcribes a large precursor molecule called 45S pre-rRNA.  The "S" in 45S refers to the Svedberg unit, a measure of sedimentation rate, with larger S values indicating larger molecules. 
-
-A smaller portion of rRNA, the 5S rRNA, is synthesized by RNA polymerase III (RNA Pol III). Notably, 5S rRNA in eukaryotes can be produced independently.  
-
-The 45S pre-rRNA undergoes a series of modifications before it becomes mature rRNA.  One crucial step is methylation, where specific regions of the pre-rRNA molecule, known as exons, are methylated. These methyl groups act as protective marks, guiding the subsequent processing steps.  Enzymes then cleave the methylated 45S pre-rRNA at designated sites to generate the mature rRNA molecules. Regions without methylation, termed introns, are removed during this cleavage process.  Following these modifications, the mature rRNA molecules are transported out of the nucleus through nuclear pores.
-
-### Comparison of Prokaryotic and Eukaryotic RNA Transcripts
-
-Prokaryotic and eukaryotic cells differ significantly in how they transcribe and process RNA. Generally, prokaryotic mRNA molecules are polycistronic, meaning they contain the genetic information for multiple proteins.  In contrast, eukaryotic mRNA is typically monocistronic, carrying the code for a single protein. 
-
-Eukaryotic RNA undergoes extensive processing, including splicing, which involves the removal of introns, a process absent in prokaryotes.  Additionally, the lengths of rRNA fragments produced by splicing vary between prokaryotes and eukaryotes.  A detailed comparison of prokaryotic and eukaryotic transcription is presented in Table 1.
-
-Table 1: Key Differences in Prokaryotic and Eukaryotic Transcription
-
-| Feature                 | Prokaryotes                                           | Eukaryotes                                                                                                         |
-|-------------------------|------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
-| Transcription/Translation| Coupled                                                | Not coupled                                                                                                          |
-| Transcription Location   | Cytoplasm                                              | Nucleus                                                                                                              |
-| Transcription Timing     | No specific phase                                       | Primarily G1 and G2 phases of the cell cycle                                                                    |
-| RNA Polymerase          | Single RNA polymerase synthesizes rRNA, mRNA, tRNA   | RNA polymerase I, II, III synthesize rRNA, mRNA, tRNA in mammals; plants have additional RNA polymerase IV and V |
-| Pre-RNA Processing     | Occurs in the cytoplasm                                | Occurs in the nucleus                                                                                                 |
-| Transcription Initiation | No specific proteins or initiation factors required      | Requires transcription factors (TFIIA, TFIIB, TFIID, TFIIE, TFIIF, TFIIH) to recognize the TATA box             |
-| RNA Polymerase Structure| 5 polypeptides (α2ββ’ωσ)                       | 10-15 polypeptides                                                                                             |
-| Surplus Nucleotides     | Generally absent after transcription                   | Present and have functions                                                                                     |
-| Genes per RNA Molecule  | Multiple (polycistronic)                              | Single (monocistronic)                                                                                          |
-| RNA Processing          | Minimal                                                 | Extensive hnRNA processing: addition of 5' cap (7-methylguanosine) and 3' poly-A tail                               |
-| rRNA Formation          | 23S, 16S, and 5S rRNA from a single primary transcript | 28S, 18S, 5.8S, and 5S rRNA from two primary transcripts                                                            |
-
-### RNA-Dependent RNA/DNA Synthesis
-
-The central dogma of molecular biology describes the flow of genetic information from DNA to RNA to protein. However, certain biological processes deviate from this traditional pathway.  Some RNA viruses, for instance, utilize reverse transcription to synthesize DNA from an RNA template.  This process is facilitated by an enzyme called reverse transcriptase (RT).
-
-Furthermore, RNA itself can undergo replication, a process termed RNA replication. 
-
-Retroviruses, a class of RNA viruses, utilize reverse transcriptase to integrate their genetic material into the host cell's DNA.  The viral DNA, integrated into the host genome, is replicated along with the host's DNA during cell division.  When conditions are favorable, the integrated viral DNA is transcribed, producing viral proteins that assemble into new virus particles, which are then released to infect other cells. 
-
-The life cycle of RNA viruses, excluding retroviruses, does not involve any DNA intermediates. Different types of RNA viruses exist:
-
-*   Positive-strand RNA viruses: Their RNA genome directly functions as mRNA for protein synthesis, as exemplified by the polio virus.
-
-*   Negative-strand RNA viruses: These viruses must first synthesize a complementary positive-strand mRNA before protein synthesis can occur.  The influenza virus, for example, carries its own RNA-dependent RNA polymerase to accomplish this.
-
-*   Retroviruses: These viruses use reverse transcriptase (RT), such as HIV reverse transcriptase, to convert their RNA genome into DNA, which is then integrated into the host chromosome at random locations. 
-
-Retroviruses employ two forms of RT:
-
-1.  RNA-dependent DNA polymerase activity: This activity synthesizes the first strand of complementary DNA (cDNA), which is complementary to the viral RNA. As the initial cDNA strand is single-stranded, it cannot integrate into the host's double-stranded DNA.
-
-2.  DNA-dependent DNA polymerase activity: This activity synthesizes the second DNA strand, complementary to the first cDNA strand.
-
-HIV, a well-known retrovirus, infects helper T cells by binding to the CD4 receptor.
-
-Unlike DNA replication, which has multiple error-checking mechanisms, reverse transcription in retroviruses lacks such proofreading systems. This absence of proofreading leads to a higher error rate during reverse transcription, resulting in increased viral mutation.  The high mutation rate is also observed in influenza viruses and necessitates frequent updates to influenza vaccines.
-
-Retroviruses produce different proteins through alternative splicing of their RNA transcripts. Their genome structure includes:
-
-*   Long terminal repeats (LTRs): These regions contain the promoter, which facilitates integration into the host DNA and ensures the viral genome is replicated along with the host cell's DNA.
-
-*   gag and pol genes: These genes encode proteins responsible for assembling the various viral components into a complete virus particle.
-
-*   env gene: This gene codes for the viral envelope protein.
-
-*   tat gene:  The tat gene encodes a protein that stabilizes and regulates the transcription of the entire viral RNA.
-
-*   Other genes: These genes encode proteins involved in regulating transcription.
-
-### Telomerase
-
-Telomerase is an enzyme crucial for maintaining the integrity of chromosomes.  It functions by extending telomeres, the protective caps at the ends of chromosomes. Telomerase is unique in that it is a reverse transcriptase that utilizes an RNA template to synthesize DNA.
-
-Telomerase activity is detected only in specific cell types, including hematopoietic cells, stem cells, germ cells, and cancer cells.  In other somatic cells, telomeres progressively shorten with each cell division, a phenomenon linked to aging.  
-
-Interestingly, when culturing cells in vitro, introducing a gene encoding telomerase can prevent telomere shortening and create an immortalized cell line suitable for research.  Cancer cells exhibit high telomerase activity, preventing telomere shortening and contributing to their uncontrolled proliferation.
-
-The mechanism of telomerase action involves several steps:
-
-1.  Binding: Telomerase carries an RNA sequence that is complementary to the 3' end of the chromosome's telomere.  This complementarity allows telomerase to bind to the telomere.
-
-2.  Extension:  After binding, telomerase uses its RNA template to synthesize DNA, extending the telomere.
-
-3.  Translocation:  Telomerase then moves along the DNA strand.
-
-4.  Further Extension: Telomerase continues to extend the telomere by repeatedly adding DNA nucleotides.
-
-5.  Completion:  Once the single-stranded telomere is sufficiently long, DNA polymerase can synthesize the complementary strand, filling in the gap and effectively lengthening the telomere at the chromosome end.
-
-### Ribozymes
-
-Ribozymes are RNA molecules with catalytic activity, capable of acting as enzymes. They can act on various substrates:
-
-*   Intermolecular:  Ribozymes can catalyze reactions on other RNA molecules.
-
-*   Intramolecular: Ribozymes can catalyze reactions on a part of their own RNA structure.
-
-The activities of ribozymes include:
-
-*   Transesterification:  The transfer of a functional group from one ester to another.
-
-*   Phosphodiester bond hydrolysis:  The cleavage of the phosphodiester bond that links nucleotides in RNA.
-
-Examples of ribozymes include:
-
-*   Hammerhead ribozyme:  This ribozyme gets its name from its secondary structure, which resembles a hammer.  It forms through GC pairing between two RNA strands.  Hammerhead ribozymes can perform both intermolecular and intramolecular cleavage.  The minimal sequence required for catalytic activity is highly conserved, with a self-cleavage site located at a specific CA dinucleotide sequence.  This self-cleavage process requires the presence of magnesium ions (Mg2+).
-
-*   Self-splicing rRNA intron from Tetrahymena:  This ribozyme, derived from a spliced Tetrahymena intron, demonstrates self-splicing activity. It recognizes a specific sequence at its 5' end and cleaves off 19 nucleotides. The remaining fragment, termed L-19 IVS, can then add or subtract bases.  
-
-    In vitro, L-19 IVS can add a cytosine (C) nucleotide to its 3' end by first binding to a short RNA fragment containing five C nucleotides. The 3' hydroxyl (OH) group of L-19 IVS then attacks the 3' C of the short RNA fragment, adding a C to itself.  Subsequently, reacting with another five-C RNA fragment leads to the 3' C of L-19 IVS being attacked by the 3' OH of the short fragment. This transfers the 3' C of L-19 IVS onto the five-C fragment, creating a six-C fragment and effectively extending the oligo-RNA.  These reactions are classified as transesterification reactions.
-
-    In vivo, the self-splicing rRNA intron from Tetrahymena can catalyze the attack of a guanine (G) nucleotide on the 5' splice junction.  This is a reversible reaction, meaning the intron can both cleave and rejoin the RNA.
-
-    P1, a region within the ribozyme, forms a secondary structure that includes an internal guide sequence and the 5' splice site. The G nucleotide attacks the 5' splice junction, releasing the downstream RNA segment.  The reaction is reversible, allowing the released RNA segment to re-enter the ribozyme and be rejoined to P1.
-
-    In vitro, the addition of an external RNA molecule can serve as a template for further RNA synthesis by the ribozyme. Removing P1 and introducing a synthetic template allows the ribozyme to join two RNA substrates after removing a G nucleotide, mimicking a simplified RNA replication mechanism.
-
-### RNA World Hypothesis
-
-The RNA world hypothesis proposes that early life forms utilized RNA as their primary carrier of genetic information. This hypothesis is based on the observation that RNA, although less stable than DNA, has a simpler structure and requires fewer enzymes for synthesis. Furthermore, RNA possesses both the ability to store genetic information and catalyze reactions.
-
-The RNA world hypothesis suggests that in the prebiotic era, the primordial soup, rich in nucleotides, could have given rise to short RNA sequences through random assembly.  Catalytic RNA fragments would have then selectively replicated themselves. Subsequently, RNA would have catalyzed the synthesis of specific peptides, leading to the co-evolution of RNA and proteins.  This co-evolution would have eventually given rise to primitive translation systems, RNA genomes, and RNA-protein enzymes.  Eventually, genomic RNA would be reverse transcribed into DNA, forming DNA genomes that would be translated by RNA-protein complexes, establishing the DNA-based life forms we know today.
-
-Despite its appeal, the RNA world hypothesis faces challenges, including the origin of the first ribose sugars, bases, and proteins in ribozymes, as well as the source of energy needed for these reactions.  
-
-The stability difference between DNA and RNA also raises questions.  RNA's instability stems from the 2' hydroxyl group on its ribose sugar, which can act as a nucleophile and attack the phosphate group of the next nucleotide, leading to RNA strand breaks.  DNA lacks this 2' hydroxyl group, making it more resistant to such cleavage. 
-
-Finally, the vast timescale of Earth's evolution, nearly 5 billion years, makes it extremely challenging to experimentally verify the RNA world hypothesis.  
-
-Despite these challenges, the RNA world hypothesis remains a compelling idea, sparking ongoing research and stimulating discussion about the origins of life. 
-        `;
-
-        let model; // Universal Sentence Encoder model
-        let fuse; // Fuse.js instance
-        let paragraphEmbeddings = []; // 存儲段落的嵌入向量
-
-        // 預處理：根據標題分割為段落並移除多餘的空白
-        function splitIntoSections(content) {
-            // 根據Markdown標題分割，保留標題作為段落的一部分
-            const sections = content.split(/###\s+/).slice(1).map(section => {
-                // 添加標題回來
-                return '### ' + section.trim();
-            });
-            return sections;
+    <!-- 移除 Fuse.js、TensorFlow.js、Typo.js 等相關庫 -->
+    
+    <!-- 引入 Gemini API 的 Importmap 與 模組化腳本 -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
         }
+      }
+    </script>
+    <script type="module">
+      import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        const sections = splitIntoSections(mainContent);
+      // 請確保 API 金鑰不會暴露在客戶端
+      // 建議將 API 呼叫移至伺服器端，並透過伺服器進行轉發
 
-        // 初始化 Fuse.js
-        function initializeFuse() {
-            const options = {
-                includeScore: true,
-                threshold: 0.4, // 控制匹配的嚴格程度
-                keys: ['text']
-            };
-            fuse = new Fuse(sections.map(p => ({ text: p })), options);
+      async function fetchAIResponse(userMessage) {
+        try {
+          const response = await fetch('YOUR_SERVER_ENDPOINT', { // 替換為您的伺服器端 API 端點
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: userMessage })
+          });
+
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+
+          const data = await response.json();
+          return data.reply;
+        } catch (error) {
+          console.error('Error fetching AI response:', error);
+          return "抱歉，出現了一些問題。請稍後再試。";
         }
+      }
 
-        // 加載 Universal Sentence Encoder 模型
-        async function loadUSE() {
-            model = await use.load();
-            console.log('Universal Sentence Encoder 模型加載完成');
-            // 計算並存儲所有段落的嵌入向量
-            paragraphEmbeddings = await model.embed(sections).array();
-        }
+      const chatMessages = document.getElementById('chat-messages');
+      const userInput = document.getElementById('user-input');
+      const sendBtn = document.getElementById('send-btn');
 
-        // 簡單的拼寫校正函數（僅作為示例，實際應用中應使用更適合中文的拼寫校正庫或API）
-        function spellCheck(input) {
-            // 這裡使用一個簡單的替換字典作為示例
-            // 在實際應用中，應該使用專業的中文拼寫校正工具
-            const correctionMap = {
-                '合成': '合成',
-                '加工': '加工',
-                // 添加更多的拼寫校正對應
-            };
-            // 假設輸入是單詞或短語，逐字校正
-            return input.split('').map(char => correctionMap[char] || char).join('');
-        }
+      // 添加訊息到聊天區域
+      function addMessage(content, type) {
+          const messageDiv = document.createElement('div');
+          messageDiv.classList.add('message', type === 'user' ? 'user-message' : 'ai-message');
+          messageDiv.textContent = content;
+          chatMessages.appendChild(messageDiv);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
 
-        // 簡單的中文分詞函數（實際應用中建議使用專業的中文分詞庫）
-        function tokenize(text) {
-            // 這裡將每個字符作為一個詞，僅作為示例
-            // 在實際應用中，應該使用像 [jieba-js](https://github.com/yanyiwu/jieba-js) 這樣的中文分詞庫
-            return text.split('').filter(char => char.trim().length > 0);
-        }
+      // 發送訊息函數
+      async function sendMessage() {
+          const message = userInput.value.trim();
+          if (message) {
+              addMessage(message, 'user');
+              userInput.value = '';
+              
+              // 呼叫伺服器端 API 取得 AI 回覆
+              const aiResponse = await fetchAIResponse(message);
+              addMessage(aiResponse, 'ai');
+          }
+      }
 
-        // 計算餘弦相似度
-        function cosineSimilarity(vecA, vecB) {
-            let dotProduct = 0;
-            let normA = 0;
-            let normB = 0;
-            for (let i = 0; i < vecA.length; i++) {
-                dotProduct += vecA[i] * vecB[i];
-                normA += vecA[i] * vecA[i];
-                normB += vecB[i] * vecB[i];
-            }
-            if (normA === 0 || normB === 0) return 0;
-            return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-        }
-
-        // 添加訊息到聊天區域
-        function addMessage(content, type) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', type === 'user' ? 'user-message' : 'ai-message');
-            messageDiv.textContent = content;
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // 模擬AI回應
-        async function simulateAIResponse(userMessage) {
-            if (!model || !fuse) {
-                return "系統正在初始化，請稍後再試。";
-            }
-
-            // 拼寫校正
-            const correctedMessage = spellCheck(userMessage);
-            if (correctedMessage !== userMessage) {
-                addMessage(`拼寫校正: ${correctedMessage}`, 'ai');
-            }
-
-            // 使用 Fuse.js 進行模糊搜索
-            const fuzzyResults = fuse.search(correctedMessage || userMessage);
-            if (fuzzyResults.length === 0) {
-                return "抱歉，我無法找到相關的資訊。請嘗試使用不同的關鍵詞或更具體的問題。";
-            }
-
-            // 取前10個模糊搜索結果進行語義相似度計算
-            const topFuzzy = fuzzyResults.slice(0, 10).map(result => result.item.text);
-            const userEmbedding = (await model.embed([correctedMessage || userMessage])).arraySync()[0];
-
-            // 計算與每個段落的餘弦相似度
-            const similarities = topFuzzy.map(paragraph => {
-                const index = sections.indexOf(paragraph);
-                const paraEmbedding = paragraphEmbeddings[index];
-                return cosineSimilarity(userEmbedding, paraEmbedding);
-            });
-
-            // 找出相似度最高的段落索引
-            const sortedIndices = similarities
-                .map((sim, index) => ({ sim, index }))
-                .sort((a, b) => b.sim - a.sim)
-                .filter(item => item.sim > 0.1) // 設定一個閾值
-                .map(item => item.index);
-
-            if (sortedIndices.length === 0) {
-                return "抱歉，我無法找到相關的資訊。請嘗試使用不同的關鍵詞或更具體的問題。";
-            }
-
-            // 回傳前兩個最相關的段落
-            const topN = 2;
-            const responseParagraphs = sortedIndices.slice(0, topN).map(index => topFuzzy[index]).join('\n\n');
-            return responseParagraphs;
-        }
-
-        // 初始化系統
-        async function initializeSystem() {
-            initializeFuse();
-            await loadUSE();
-        }
-
-        // 事件監聽
-        sendBtn.addEventListener('click', sendMessage);
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
-
-        // 發送訊息函數
-        async function sendMessage() {
-            const message = userInput.value.trim();
-            if (message) {
-                addMessage(message, 'user');
-                userInput.value = '';
-                
-                setTimeout(async () => {
-                    const aiResponse = await simulateAIResponse(message);
-                    addMessage(aiResponse, 'ai');
-                }, 500);
-            }
-        }
-
-        // 系統初始化
-        initializeSystem();
+      // 事件監聽
+      sendBtn.addEventListener('click', sendMessage);
+      userInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendMessage();
+      });
     </script>
 </body>
 </html>
