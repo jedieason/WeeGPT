@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -198,11 +198,11 @@
             <input 
                 type="text" 
                 id="user-input" 
-                placeholder="Ask WeeGPT..."
+                placeholder="請問WeeGPT..."
                 maxlength="200"
             >
             <button id="send-btn">
-                Send
+                發送
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"></line>
                     <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -211,6 +211,15 @@
         </div>
     </div>
 
+    <!-- 引入必要的庫 -->
+    <!-- Fuse.js for Fuzzy Search -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+    <!-- TensorFlow.js for Universal Sentence Encoder -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder@1.3.2/dist/universal-sentence-encoder.min.js"></script>
+    <!-- 引入簡單的拼寫校正庫（此處使用一個簡單的例子，實際應用中需使用適合中文的拼寫校正庫或API） -->
+    <script src="https://cdn.jsdelivr.net/npm/simple-spellchecker@0.4.2/index.js"></script>
+
     <script>
         const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
@@ -218,7 +227,7 @@
 
         // 主題內容儲存在這裡
         const mainContent = `
-## RNA Synthesis, Processing, and the RNA World Hypothesis
+### RNA Synthesis, Processing, and the RNA World Hypothesis
 
 This text explores the intricacies of RNA synthesis and processing, contrasting prokaryotic and eukaryotic mechanisms, and examining the fascinating concept of the RNA world hypothesis.
 
@@ -351,42 +360,60 @@ The stability difference between DNA and RNA also raises questions.  RNA's insta
 Finally, the vast timescale of Earth's evolution, nearly 5 billion years, makes it extremely challenging to experimentally verify the RNA world hypothesis.  
 
 Despite these challenges, the RNA world hypothesis remains a compelling idea, sparking ongoing research and stimulating discussion about the origins of life. 
-
         `;
 
-        // 預處理：分割為段落並移除多餘的空白
-        const paragraphs = mainContent.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
+        let model; // Universal Sentence Encoder model
+        let fuse; // Fuse.js instance
+        let paragraphEmbeddings = []; // 存儲段落的嵌入向量
 
-        // 建立詞彙表
-        const vocabulary = new Set();
-        paragraphs.forEach(paragraph => {
-            tokenize(paragraph).forEach(word => vocabulary.add(word));
-        });
-        const vocabArray = Array.from(vocabulary);
-        const vocabIndex = {};
-        vocabArray.forEach((word, index) => {
-            vocabIndex[word] = index;
-        });
-
-        // 建立每個段落的向量
-        const paragraphVectors = paragraphs.map(paragraph => {
-            const vector = new Array(vocabArray.length).fill(0);
-            const words = tokenize(paragraph);
-            words.forEach(word => {
-                if (vocabIndex[word] !== undefined) {
-                    vector[vocabIndex[word]] += 1;
-                }
+        // 預處理：根據標題分割為段落並移除多餘的空白
+        function splitIntoSections(content) {
+            // 根據Markdown標題分割，保留標題作為段落的一部分
+            const sections = content.split(/###\s+/).slice(1).map(section => {
+                // 添加標題回來
+                return '### ' + section.trim();
             });
-            return vector;
-        });
+            return sections;
+        }
 
-        // Tokenize函數：將文本轉換為小寫並移除非字母字符
+        const sections = splitIntoSections(mainContent);
+
+        // 初始化 Fuse.js
+        function initializeFuse() {
+            const options = {
+                includeScore: true,
+                threshold: 0.4, // 控制匹配的嚴格程度
+                keys: ['text']
+            };
+            fuse = new Fuse(sections.map(p => ({ text: p })), options);
+        }
+
+        // 加載 Universal Sentence Encoder 模型
+        async function loadUSE() {
+            model = await use.load();
+            console.log('Universal Sentence Encoder 模型加載完成');
+            // 計算並存儲所有段落的嵌入向量
+            paragraphEmbeddings = await model.embed(sections).array();
+        }
+
+        // 簡單的拼寫校正函數（僅作為示例，實際應用中應使用更適合中文的拼寫校正庫或API）
+        function spellCheck(input) {
+            // 這裡使用一個簡單的替換字典作為示例
+            // 在實際應用中，應該使用專業的中文拼寫校正工具
+            const correctionMap = {
+                '合成': '合成',
+                '加工': '加工',
+                // 添加更多的拼寫校正對應
+            };
+            // 假設輸入是單詞或短語，逐字校正
+            return input.split('').map(char => correctionMap[char] || char).join('');
+        }
+
+        // 簡單的中文分詞函數（實際應用中建議使用專業的中文分詞庫）
         function tokenize(text) {
-            return text
-                .toLowerCase()
-                .replace(/[^a-z0-9\s]/g, '')
-                .split(/\s+/)
-                .filter(word => word.length > 2);
+            // 這裡將每個字符作為一個詞，僅作為示例
+            // 在實際應用中，應該使用像 [jieba-js](https://github.com/yanyiwu/jieba-js) 這樣的中文分詞庫
+            return text.split('').filter(char => char.trim().length > 0);
         }
 
         // 計算餘弦相似度
@@ -403,6 +430,7 @@ Despite these challenges, the RNA world hypothesis remains a compelling idea, sp
             return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
         }
 
+        // 添加訊息到聊天區域
         function addMessage(content, type) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message', type === 'user' ? 'user-message' : 'ai-message');
@@ -411,29 +439,40 @@ Despite these challenges, the RNA world hypothesis remains a compelling idea, sp
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        function simulateAIResponse(userMessage) {
-            // Tokenize用戶訊息
-            const userTokens = tokenize(userMessage);
-            if (userTokens.length === 0) {
-                return "抱歉，您的訊息似乎沒有包含有效的關鍵詞。請嘗試重新輸入。";
+        // 模擬AI回應
+        async function simulateAIResponse(userMessage) {
+            if (!model || !fuse) {
+                return "系統正在初始化，請稍後再試。";
             }
 
-            // 建立用戶訊息的向量
-            const userVector = new Array(vocabArray.length).fill(0);
-            userTokens.forEach(word => {
-                if (vocabIndex[word] !== undefined) {
-                    userVector[vocabIndex[word]] += 1;
-                }
-            });
+            // 拼寫校正
+            const correctedMessage = spellCheck(userMessage);
+            if (correctedMessage !== userMessage) {
+                addMessage(`拼寫校正: ${correctedMessage}`, 'ai');
+            }
 
-            // 計算與每個段落的相似度
-            const similarities = paragraphVectors.map(paragraphVector => cosineSimilarity(userVector, paragraphVector));
+            // 使用 Fuse.js 進行模糊搜索
+            const fuzzyResults = fuse.search(correctedMessage || userMessage);
+            if (fuzzyResults.length === 0) {
+                return "抱歉，我無法找到相關的資訊。請嘗試使用不同的關鍵詞或更具體的問題。";
+            }
+
+            // 取前10個模糊搜索結果進行語義相似度計算
+            const topFuzzy = fuzzyResults.slice(0, 10).map(result => result.item.text);
+            const userEmbedding = (await model.embed([correctedMessage || userMessage])).arraySync()[0];
+
+            // 計算與每個段落的餘弦相似度
+            const similarities = topFuzzy.map(paragraph => {
+                const index = sections.indexOf(paragraph);
+                const paraEmbedding = paragraphEmbeddings[index];
+                return cosineSimilarity(userEmbedding, paraEmbedding);
+            });
 
             // 找出相似度最高的段落索引
             const sortedIndices = similarities
                 .map((sim, index) => ({ sim, index }))
                 .sort((a, b) => b.sim - a.sim)
-                .filter(item => item.sim > 0) // 過濾掉相似度為0的段落
+                .filter(item => item.sim > 0.1) // 設定一個閾值
                 .map(item => item.index);
 
             if (sortedIndices.length === 0) {
@@ -442,27 +481,38 @@ Despite these challenges, the RNA world hypothesis remains a compelling idea, sp
 
             // 回傳前兩個最相關的段落
             const topN = 2;
-            const responseParagraphs = sortedIndices.slice(0, topN).map(index => paragraphs[index]).join('\n\n');
+            const responseParagraphs = sortedIndices.slice(0, topN).map(index => topFuzzy[index]).join('\n\n');
             return responseParagraphs;
         }
 
+        // 初始化系統
+        async function initializeSystem() {
+            initializeFuse();
+            await loadUSE();
+        }
+
+        // 事件監聽
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
 
-        function sendMessage() {
+        // 發送訊息函數
+        async function sendMessage() {
             const message = userInput.value.trim();
             if (message) {
                 addMessage(message, 'user');
                 userInput.value = '';
                 
-                setTimeout(() => {
-                    const aiResponse = simulateAIResponse(message);
+                setTimeout(async () => {
+                    const aiResponse = await simulateAIResponse(message);
                     addMessage(aiResponse, 'ai');
                 }, 500);
             }
         }
+
+        // 系統初始化
+        initializeSystem();
     </script>
 </body>
 </html>
