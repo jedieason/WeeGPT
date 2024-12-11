@@ -125,11 +125,6 @@
             font-size: 16px; /* 確保與對話框的字體大小一致 */
             line-height: 1.5; /* 與對話框相同的行高 */
         }
-        
-        #image-input {
-            margin-right: 10px;
-            cursor: pointer;
-        }
 
         #send-btn {
             background: var(--color-primary);
@@ -200,13 +195,6 @@
         </div>
         <div id="chat-messages"></div>
         <div id="input-area">
-            <button id="image-btn" title="Upload Image">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-            </button>
             <input 
                 type="text" 
                 id="user-input" 
@@ -276,20 +264,14 @@
       // 發送訊息函數
       async function sendMessage() {
           const message = userInput.value.trim();
-          const files = imageInput.files;
           if (message || files.length > 0) {
               addMessage(message, 'user');
               userInput.value = '';
-              imageInput.value = '';
 
               try {
                   let prompt = message;
-                  let imageParts = [];
-                  if (files.length > 0) {
-                      imageParts = await Promise.all([...files].map(fileToGenerativePart));
-                  }
 
-                  let input = [prompt, ...imageParts];
+                  let input = [prompt];
                   const result = await model.generateContent(input);
                   
                   const response = await result.response;
@@ -352,20 +334,14 @@
       // 處理串流回應
       async function sendStreamMessage() {
           const message = userInput.value.trim();
-          const files = imageInput.files;
           if (message || files.length > 0) {
               addMessage(message, 'user');
               userInput.value = '';
-              imageInput.value = '';
 
               try {
                   let prompt = message;
-                  let imageParts = [];
-                  if (files.length > 0) {
-                      imageParts = await Promise.all([...files].map(fileToGenerativePart));
-                  }
 
-                  let input = [prompt, ...imageParts];
+                  let input = [prompt];
                   const result = await model.generateContentStream(input);
                   
                   let text = '';
