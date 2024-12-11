@@ -122,14 +122,10 @@
             outline: none;
             transition: var(--transition-smooth);
             font-family: 'Quicksand', sans-serif;
+            font-size: 16px; /* 確保與對話框的字體大小一致 */
+            line-height: 1.5; /* 與對話框相同的行高 */
         }
-
-        #user-input:focus {
-            border-color: var(--color-primary);
-            background-color: white;
-            box-shadow: 0 0 0 3px rgba(106, 90, 205, 0.1);
-        }
-
+        
         #send-btn {
             background: var(--color-primary);
             color: var(--color-text-light);
@@ -143,6 +139,14 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: 16px; /* 確保與對話框的字體大小一致 */
+            line-height: 1.5; /* 與對話框相同的行高 */
+        }
+
+        #user-input:focus {
+            border-color: var(--color-primary);
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(106, 90, 205, 0.1);
         }
 
         #send-btn:hover {
