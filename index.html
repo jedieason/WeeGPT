@@ -211,8 +211,6 @@
         </div>
     </div>
 
-    <!-- 移除 Fuse.js、TensorFlow.js、Typo.js 等相關庫 -->
-    
     <!-- 引入 Gemini API 的 Importmap 與 模組化腳本 -->
     <script type="importmap">
       {
@@ -224,30 +222,12 @@
     <script type="module">
       import { GoogleGenerativeAI } from "@google/generative-ai";
 
-      // 請確保 API 金鑰不會暴露在客戶端
-      // 建議將 API 呼叫移至伺服器端，並透過伺服器進行轉發
+      // 請替換為您的 Gemini API 金鑰
+      const API_KEY = "YOUR_NEW_SECURE_GEMINI_API_KEY"; // 替換為您的新 API 金鑰
 
-      async function fetchAIResponse(userMessage) {
-        try {
-          const response = await fetch('YOUR_SERVER_ENDPOINT', { // 替換為您的伺服器端 API 端點
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ message: userMessage })
-          });
-
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-
-          const data = await response.json();
-          return data.reply;
-        } catch (error) {
-          console.error('Error fetching AI response:', error);
-          return "抱歉，出現了一些問題。請稍後再試。";
-        }
-      }
+      // 初始化 Gemini API
+      const genAI = new GoogleGenerativeAI(API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const chatMessages = document.getElementById('chat-messages');
       const userInput = document.getElementById('user-input');
@@ -269,9 +249,16 @@
               addMessage(message, 'user');
               userInput.value = '';
               
-              // 呼叫伺服器端 API 取得 AI 回覆
-              const aiResponse = await fetchAIResponse(message);
-              addMessage(aiResponse, 'ai');
+              try {
+                  // 呼叫 Gemini API 生成回覆
+                  const result = await model.generateContent(message);
+                  const response = await result.response;
+                  const text = await response.text();
+                  addMessage(text, 'ai');
+              } catch (error) {
+                  console.error('Error fetching AI response:', error);
+                  addMessage("抱歉，出現了一些問題。請稍後再試。", 'ai');
+              }
           }
       }
 
